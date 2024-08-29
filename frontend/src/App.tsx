@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { backend } from 'declarations/backend';
 import { AppBar, Toolbar, Typography, Container, Grid, Card, CardContent, CardActions, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
+import { AuthClient } from '@dfinity/auth-client';
 
 interface Post {
   id: bigint;
@@ -9,17 +10,49 @@ interface Post {
   content: string;
   timestamp: bigint;
   author: string | null;
+  authorPrincipal: string | null;
 }
 
-const App: React.FC = () => {
+interface AppProps {
+  authClient: AuthClient;
+}
+
+const App: React.FC<AppProps> = ({ authClient }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [newPost, setNewPost] = useState({ title: '', content: '', author: '' });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userPrincipal, setUserPrincipal] = useState<string | null>(null);
 
   useEffect(() => {
+    checkAuth();
     fetchPosts();
   }, []);
+
+  const checkAuth = async () => {
+    const isAuth = await authClient.isAuthenticated();
+    setIsAuthenticated(isAuth);
+    if (isAuth) {
+      const principal = await authClient.getIdentity().getPrincipal().toText();
+      setUserPrincipal(principal);
+    }
+  };
+
+  const login = async () => {
+    await authClient.login({
+      identityProvider: 'https://identity.ic0.app',
+      onSuccess: () => {
+        checkAuth();
+      },
+    });
+  };
+
+  const logout = async () => {
+    await authClient.logout();
+    setIsAuthenticated(false);
+    setUserPrincipal(null);
+  };
 
   const fetchPosts = async () => {
     try {
@@ -33,6 +66,10 @@ const App: React.FC = () => {
   };
 
   const handleCreatePost = async () => {
+    if (!isAuthenticated) {
+      alert('Please login to create a post');
+      return;
+    }
     setLoading(true);
     try {
       const result = await backend.createPost(newPost.title, newPost.content, [newPost.author]);
@@ -56,6 +93,16 @@ const App: React.FC = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Crypto Blog
           </Typography>
+          {isAuthenticated ? (
+            <>
+              <Typography variant="body2" sx={{ mr: 2 }}>
+                Logged in as: {userPrincipal}
+              </Typography>
+              <Button color="inherit" onClick={logout}>Logout</Button>
+            </>
+          ) : (
+            <Button color="inherit" onClick={login}>Login with Internet Identity</Button>
+          )}
           <Button color="inherit" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)}>
             New Post
           </Button>

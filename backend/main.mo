@@ -8,6 +8,7 @@ import Text "mo:base/Text";
 import Option "mo:base/Option";
 import Result "mo:base/Result";
 import Debug "mo:base/Debug";
+import Principal "mo:base/Principal";
 
 actor {
   type Post = {
@@ -16,10 +17,15 @@ actor {
     content: Text;
     timestamp: Int;
     author: ?Text;
+    authorPrincipal: ?Principal;
   };
 
   stable var posts : [Post] = [];
   stable var nextId : Nat = 0;
+
+  public shared query({caller}) func whoami() : async Text {
+    Principal.toText(caller)
+  };
 
   public query func getPosts() : async [Post] {
     Array.sort(posts, func(a: Post, b: Post) : { #less; #equal; #greater } {
@@ -27,13 +33,14 @@ actor {
     })
   };
 
-  public func createPost(title: Text, content: Text, author: ?Text) : async Result.Result<Post, Text> {
+  public shared({caller}) func createPost(title: Text, content: Text, author: ?Text) : async Result.Result<Post, Text> {
     let post : Post = {
       id = nextId;
       title = title;
       content = content;
       timestamp = Time.now();
       author = author;
+      authorPrincipal = ?caller;
     };
     posts := Array.append(posts, [post]);
     nextId += 1;

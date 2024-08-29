@@ -6,6 +6,7 @@ type Result =
 type Post = 
  record {
    author: opt text;
+   authorPrincipal: opt principal;
    content: text;
    id: nat;
    timestamp: int;
@@ -15,4 +16,5 @@ service : {
   createPost: (text, text, opt text) -> (Result);
   getPostById: (nat) -> (opt Post) query;
   getPosts: () -> (vec Post) query;
+  whoami: () -> (text) query;
 }

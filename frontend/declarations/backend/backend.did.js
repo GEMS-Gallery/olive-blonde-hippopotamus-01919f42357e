@@ -5,6 +5,7 @@ export const idlFactory = ({ IDL }) => {
     'content' : IDL.Text,
     'author' : IDL.Opt(IDL.Text),
     'timestamp' : IDL.Int,
+    'authorPrincipal' : IDL.Opt(IDL.Principal),
   });
   const Result = IDL.Variant({ 'ok' : Post, 'err' : IDL.Text });
   return IDL.Service({
@@ -15,6 +16,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getPostById' : IDL.Func([IDL.Nat], [IDL.Opt(Post)], ['query']),
     'getPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+    'whoami' : IDL.Func([], [IDL.Text], ['query']),
   });
 };
 export const init = ({ IDL }) => { return []; };
